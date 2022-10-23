@@ -43,7 +43,11 @@ def handle_bookmarks():
         }), HTTP_201_CREATED
 
     else:
-        bookmarks = Bookmark.query.filter_by(user_id=current_user)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 5, type=int)
+
+        bookmarks = Bookmark.query.filter_by(
+            user_id=current_user).paginate(page=page, per_page=per_page)
 
         data = [{
             'id': bookmark.id,
@@ -55,4 +59,14 @@ def handle_bookmarks():
             'updated_at': bookmark.updated_at,
         } for bookmark in bookmarks]
 
-        return jsonify({'data': data}), HTTP_200_OK
+        meta = {
+            'page': bookmarks.page,
+            'pages': bookmarks.pages,
+            'total_count': bookmarks.total,
+            'next_page': bookmarks.next_num,
+            'previous_page': bookmarks.prev_num,
+            'has_next_page': bookmarks.has_next,
+            'has_previous_page': bookmarks.has_prev,
+        }
+
+        return jsonify({'data': data, 'meta': meta}), HTTP_200_OK
