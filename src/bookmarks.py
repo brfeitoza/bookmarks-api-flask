@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 import validators
 
-from src.constants.http_status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
+from src.constants.http_status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 from src.database import Bookmark, db
 
 bookmarks = Blueprint('bookmarks', __name__, url_prefix='/api/v1/bookmarks')
@@ -70,3 +70,26 @@ def handle_bookmarks():
         }
 
         return jsonify({'data': data, 'meta': meta}), HTTP_200_OK
+
+
+@bookmarks.get('/<int:id>')
+@jwt_required()
+def get_bookmark(id):
+    current_user = get_jwt_identity()
+
+    bookmark = Bookmark.query.filter_by(user_id=current_user, id=id).first()
+
+    if not bookmark:
+        return jsonify({
+            'error': 'Bookmark not found'
+        }), HTTP_404_NOT_FOUND
+
+    return jsonify({
+        'id': bookmark.id,
+        'url': bookmark.url,
+        'short_url': bookmark.short_url,
+        'visits': bookmark.visits,
+        'body': bookmark.body,
+        'created_at': bookmark.created_at,
+        'updated_at': bookmark.updated_at,
+    }), HTTP_200_OK
